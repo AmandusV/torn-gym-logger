@@ -95,15 +95,16 @@
         const btn = document.createElement('button');
         btn.innerText = '📋 Log Gym Training';
         btn.style.position = 'fixed';
-        btn.style.bottom = '20px';
+        btn.style.bottom = '100px'; // Moves it higher above Torn’s bottom bar
         btn.style.right = '20px';
-        btn.style.zIndex = '9999';
+        btn.style.zIndex = '10000'; // Ensures it’s above other UI elements
         btn.style.padding = '10px';
         btn.style.backgroundColor = '#007bff';
         btn.style.color = 'white';
         btn.style.border = 'none';
         btn.style.borderRadius = '5px';
         btn.style.cursor = 'pointer';
+        btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
 
         btn.onclick = async () => {
             const user = await fetchTornData('user', 'energy,happy');
