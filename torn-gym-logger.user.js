@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Torn Gym Logger (All Stats)
+// @name         Torn Gym Logger (Manual Entry)
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Logs gym training for all stats to Google Sheets with manual input
+// @description  Logs gym training manually to Google Sheets via popup form
 // @author       Amandus
 // @match        https://www.torn.com/*
 // @grant        GM_xmlhttpRequest
@@ -12,16 +12,9 @@
 (function() {
     'use strict';
 
-    const API_KEY = 'YOUR_TORN_API_KEY'; // Replace with your Torn API key
-    const GOOGLE_SHEET_WEBHOOK = 'YOUR_WEBHOOK_URL'; // Replace with your Google Apps Script URL
+    const GOOGLE_SHEET_WEBHOOK = 'https://script.google.com/macros/s/AKfycbyiO3AN6Bv7muyzfDbn9SploSfIZ6W181ullVX-j3cbftTpupU74NK28ma0a8rcmLpt2g/exec';
 
-    async function fetchTornData(endpoint, selections) {
-        const url = `https://api.torn.com/${endpoint}?selections=${selections}&key=${API_KEY}`;
-        const response = await fetch(url);
-        return await response.json();
-    }
-
-    function createPopupForm(defaults) {
+    function createPopupForm() {
         const form = document.createElement('div');
         form.style.position = 'fixed';
         form.style.top = '50%';
@@ -30,7 +23,7 @@
         form.style.backgroundColor = '#fff';
         form.style.padding = '20px';
         form.style.border = '2px solid #333';
-        form.style.zIndex = '9999';
+        form.style.zIndex = '10000';
         form.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
         form.innerHTML = `
             <h3>Log Gym Training</h3>
@@ -42,11 +35,11 @@
                 <option value="defense">Defense</option>
             </select><br><br>
             <label>Energy Used:</label>
-            <input type="number" id="energy" value="${defaults.energy}"><br><br>
+            <input type="number" id="energy"><br><br>
             <label>Stat Gain:</label>
             <input type="text" id="gain"><br><br>
             <label>Happy Level:</label>
-            <input type="number" id="happy" value="${defaults.happy}"><br><br>
+            <input type="number" id="happy"><br><br>
             <label>Points Used:</label>
             <input type="number" id="points"><br><br>
             <label>Booster Used:</label>
@@ -76,28 +69,42 @@
     }
 
     function sendToGoogleSheet(data) {
+    console.log("Sending data to webhook:", data);
+
+    try {
         GM_xmlhttpRequest({
             method: "POST",
             url: GOOGLE_SHEET_WEBHOOK,
             headers: { "Content-Type": "application/json" },
             data: JSON.stringify(data),
             onload: function(response) {
-                alert("Training logged successfully!");
-                console.log("Logged:", response.responseText);
+                console.log("Webhook response status:", response.status);
+                console.log("Webhook response text:", response.responseText);
+
+                if (response.status === 200 && response.responseText.includes("Success")) {
+                    alert("Training logged successfully!");
+                } else {
+                    alert("Webhook error: " + response.responseText);
+                }
+            },
+            onerror: function(error) {
+                console.error("Webhook error:", error);
+                alert("Logging failed. Check webhook URL.");
             }
         });
+    } catch (err) {
+        console.error("Unexpected error during GM_xmlhttpRequest:", err);
+        alert("Unexpected error occurred while logging.");
     }
+}
 
     function addLogButton() {
-        const target = document.querySelector('#mainContainer');
-        if (!target) return;
-
         const btn = document.createElement('button');
         btn.innerText = '📋 Log Gym Training';
         btn.style.position = 'fixed';
-        btn.style.bottom = '100px'; // Moves it higher above Torn’s bottom bar
+        btn.style.bottom = '100px';
         btn.style.right = '20px';
-        btn.style.zIndex = '10000'; // Ensures it’s above other UI elements
+        btn.style.zIndex = '10000';
         btn.style.padding = '10px';
         btn.style.backgroundColor = '#007bff';
         btn.style.color = 'white';
@@ -106,15 +113,15 @@
         btn.style.cursor = 'pointer';
         btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
 
-        btn.onclick = async () => {
-            const user = await fetchTornData('user', 'energy,happy');
-            createPopupForm({ energy: user.energy.current, happy: user.happy });
+        btn.onclick = () => {
+            createPopupForm();
         };
 
-        target.appendChild(btn);
+        document.body.appendChild(btn);
+        console.log("📋 Log Gym Training button added.");
     }
 
     window.addEventListener('load', () => {
-        setTimeout(addLogButton, 3000);
+        setTimeout(addLogButton, 5000);
     });
 })();
